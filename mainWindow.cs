@@ -109,19 +109,46 @@ namespace sap_hana_user_export
 
 
 
-        private void bt_generateSql_Click(object sender, EventArgs e)
+        private async void bt_generateSql_Click(object sender, EventArgs e)
         {
-            string fileName = "generated_sql.txt";
-            string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string appDataFolder = Path.Combine(documentsFolder, "sap-hana-user-export");
-            string createSqlFolder = Path.Combine(appDataFolder, "createSQL");
+            if (string.IsNullOrWhiteSpace(tb_sourceUser.Text))
+            {
+                MessageBox.Show("Please enter a source user name.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-            // Ensure the directories exist
-            Directory.CreateDirectory(createSqlFolder);
+            try
+            {
+                string fileName = $"{tb_sourceUser.Text}_create.txt";
+                string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                string appDataFolder = Path.Combine(documentsFolder, "sap-hana-user-export");
+                string createSqlFolder = Path.Combine(appDataFolder, "createSQL");
 
-            generatedSqlPath = Path.Combine(createSqlFolder, fileName);
 
-            _ = fileIO.WriteFileAsync(generatedSqlPath, "Test");
+                string content = "asd"; 
+
+                // Ensure the directories exist
+                Directory.CreateDirectory(createSqlFolder);
+
+                string generatedSqlPath = Path.Combine(createSqlFolder, fileName);
+
+                // Save the file
+                await fileIO.WriteFileAsync(generatedSqlPath, content);
+
+                // Copy content to clipboard
+                Clipboard.SetText(content);
+
+                MessageBox.Show($"File saved successfully at:\n{generatedSqlPath}\n"+"\nContent copied to clipboard",
+                                "File Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An unexpected error occurred.\nError: {ex.Message}",
+                                "Unexpected Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
+
+
     }
 }
