@@ -45,6 +45,7 @@
             bt_generateSql.TabIndex = 0;
             bt_generateSql.Text = "Generate";
             bt_generateSql.UseVisualStyleBackColor = true;
+            bt_generateSql.Click += bt_generateSql_Click;
             // 
             // bt_copyQuery
             // 
@@ -54,6 +55,7 @@
             bt_copyQuery.TabIndex = 1;
             bt_copyQuery.Text = "Copy query";
             bt_copyQuery.UseVisualStyleBackColor = true;
+            bt_copyQuery.Click += bt_copyQuery_Click;
             // 
             // bt_loadData
             // 
@@ -63,6 +65,7 @@
             bt_loadData.TabIndex = 2;
             bt_loadData.Text = "Load data";
             bt_loadData.UseVisualStyleBackColor = true;
+            bt_loadData.Click += bt_loadData_Click;
             // 
             // tb_sourceUser
             // 

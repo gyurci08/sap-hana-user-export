@@ -11,5 +11,20 @@ namespace sap_hana_user_export
         {
 
         }
+
+        private void bt_copyQuery_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void bt_loadData_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void bt_generateSql_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
