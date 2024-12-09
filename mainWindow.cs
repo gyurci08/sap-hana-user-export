@@ -1,3 +1,4 @@
+using sap_hana_user_export.data;
 using sap_hana_user_export.file;
 
 namespace sap_hana_user_export
@@ -28,15 +29,13 @@ namespace sap_hana_user_export
                 GRANTEE = '{0}'
             """;
 
+        private String authorizationDataPath = "";
+
         private String generatedSqlPath = "";
 
 
         private String sourceUser;
         private String targetUser;
-
-
-
-
 
         private FileIO fileIO = new FileIO();
 
@@ -78,11 +77,36 @@ namespace sap_hana_user_export
         }
 
 
-      
-        private void bt_loadData_Click(object sender, EventArgs e)
+
+        private async void bt_loadData_Click(object sender, EventArgs e)
         {
-  
+            try
+            {
+                using (OpenFileDialog openFileDialog = new OpenFileDialog())
+                {
+                    openFileDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+                    openFileDialog.Title = "Select authorization data file";
+
+                    if (openFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        string filePath = openFileDialog.FileName;
+                        DataParser dataParser = new DataParser();
+
+                        string rawData = await fileIO.ReadFileAsync(filePath);
+                        List<string[]> data = dataParser.ParseContent(rawData);
+
+                        // Process the parsed data as needed
+                        // For example:
+                        // DisplayData(data);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error processing file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
 
 
         private void bt_generateSql_Click(object sender, EventArgs e)
