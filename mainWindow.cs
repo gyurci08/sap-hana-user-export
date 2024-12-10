@@ -9,7 +9,8 @@ namespace sap_hana_user_export
 {
     public partial class mainWindow : Form
     {
-        private String authorizationDataQuery = """
+        private String authorizationDataQuery =
+            """
             SELECT 
                 ROLE_NAME AS OBJECT_NAME,
                 NULL AS SCHEMA_NAME,
@@ -18,7 +19,7 @@ namespace sap_hana_user_export
             FROM 
                 GRANTED_ROLES 
             WHERE 
-                GRANTEE LIKE '{user}'
+                GRANTEE LIKE '{0}'
 
             UNION
 
@@ -30,21 +31,15 @@ namespace sap_hana_user_export
             FROM 
                 GRANTED_PRIVILEGES 
             WHERE 
-                GRANTEE LIKE '{user}'
+                GRANTEE LIKE '{0}'
             """;
 
 
-
-        private String authorizationDataPath = "";
-
-        private String generatedSqlPath = "";
-
         private FileIO fileIO = new FileIO();
-
         List<string[]> data;
 
 
-
+       
 
    
         private static string createGrantSQL(DbAuthorization dbAuthorization, string username)
@@ -75,23 +70,6 @@ namespace sap_hana_user_export
 
 
 
-
-
-
-
-
-
-
-        public mainWindow()
-        {
-            InitializeComponent();
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
         private void bt_copyQuery_Click(object sender, EventArgs e)
         {
             try
@@ -99,11 +77,11 @@ namespace sap_hana_user_export
                 string formattedQuery;
                 if (!string.IsNullOrWhiteSpace(tb_sourceUser.Text))
                 {
-                    formattedQuery = string.Format(authorizationDataQuery, tb_sourceUser.Text);
+                    formattedQuery = string.Format(authorizationDataQuery, tb_sourceUser.Text.ToUpper());
                 }
                 else
                 {
-                    formattedQuery = authorizationDataQuery;
+                    formattedQuery = string.Format(authorizationDataQuery, "CHANGE_ME");
                 }
 
                 Clipboard.SetText(formattedQuery);
@@ -147,15 +125,22 @@ namespace sap_hana_user_export
 
         private async void bt_generateSql_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(tb_sourceUser.Text) && string.IsNullOrWhiteSpace(tb_targetUser.Text))
+            if (string.IsNullOrWhiteSpace(tb_sourceUser.Text))
             {
-                MessageBox.Show("Please enter a source/target user name.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please enter a source user name.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                string targetUser = tb_targetUser.Text.ToUpper();
+                string targetUser = string.Empty;
+                if (!string.IsNullOrWhiteSpace(tb_targetUser.Text))
+                {
+                    targetUser = tb_targetUser.Text.ToUpper();
+                }
+                else
+                {   targetUser = tb_sourceUser.Text.ToUpper(); }
+
                 string fileName = $"{targetUser}_create.txt";
                 string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string appDataFolder = Path.Combine(documentsFolder, "sap-hana-user-export");
@@ -204,6 +189,19 @@ namespace sap_hana_user_export
         }
 
 
+
+
+
+
+        public mainWindow()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
 
     }
 }
