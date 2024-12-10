@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("sap-hana-user-export")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+10684fecbe314fe6ced3bd3673aec2f1791191ee")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6084858b30460819d311602a2f0bab67f4ee19c1")]
 [assembly: System.Reflection.AssemblyProductAttribute("sap-hana-user-export")]
 [assembly: System.Reflection.AssemblyTitleAttribute("sap-hana-user-export")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

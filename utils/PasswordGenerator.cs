@@ -4,48 +4,35 @@ using System.Text;
 
 namespace sap_hana_user_export.utils
 {
-    internal class PasswordGenerator
+    public class PasswordGenerator
     {
-        private const string LowercaseChars = "abcdefghijklmnopqrstuvwxyz";
-        private const string UppercaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        private const string Digits = "0123456789";
-        private const string SpecialChars = "!@#$%^&*()-_=+[]{}|;:,.<>?";
-
-        public string GeneratePassword(int length, int specialCharCount)
+        internal string Generate(int CharLength, int SpecNum)
         {
-            if (length < 1)
-                throw new ArgumentException("Password length must be at least 1.", nameof(length));
+            Random rnd = new Random();
+            string nChars = string.Empty;
+            string sChars = string.Empty;
 
-            if (specialCharCount < 0)
-                throw new ArgumentException("Number of special characters cannot be negative.", nameof(specialCharCount));
+            for (int i = 0; i <= CharLength && i < (CharLength - SpecNum); i++)
+            {
+                nChars += (char)(rnd.Next(2) == 0 ? rnd.Next(48, 57) :
+                                 rnd.Next(2) == 0 ? rnd.Next(65, 90) : rnd.Next(97, 122));
+            }
 
-            if (specialCharCount > length)
-                throw new ArgumentException("Number of special characters cannot be greater than the password length.", nameof(specialCharCount));
+            for (int i = 0; i < SpecNum && i < SpecNum; i++)
+            {
+                sChars += (char)(rnd.Next(2) == 0 ? rnd.Next(33, 47) :
+                                 rnd.Next(2) == 0 ? rnd.Next(58, 64) : rnd.Next(123, 126));
+            }
 
+            char[] ch = (nChars + sChars).ToCharArray();
             Random random = new Random();
 
-            // Generate special characters
-            var specialChars = new char[specialCharCount];
-            for (int i = 0; i < specialCharCount; i++)
+            for (int i = ch.Length - 1; i > 0; i--)
             {
-                specialChars[i] = SpecialChars[random.Next(SpecialChars.Length)];
+                int j = random.Next(0, i + 1);
+                (ch[i], ch[j]) = (ch[j], ch[i]);
             }
-
-            // Generate the remaining characters
-            var remainingCharCount = length - specialCharCount;
-            var remainingChars = new char[remainingCharCount];
-            var allChars = LowercaseChars + UppercaseChars + Digits;
-            for (int i = 0; i < remainingCharCount; i++)
-            {
-                remainingChars[i] = allChars[random.Next(allChars.Length)];
-            }
-
-            // Combine and shuffle the characters
-            var passwordChars = specialChars.Concat(remainingChars).ToArray();
-            passwordChars = passwordChars.OrderBy(c => random.Next()).ToArray();
-
-            // Convert to string and return
-            return new string(passwordChars);
+            return new string(ch);
         }
     }
 }

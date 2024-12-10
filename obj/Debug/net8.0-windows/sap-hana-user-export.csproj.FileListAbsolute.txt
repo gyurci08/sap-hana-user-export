@@ -14,3 +14,4 @@ C:\Users\A200142857\OneDrive - Deutsche Telekom AG\Dokumente\Developement\C#\sap
 C:\Users\A200142857\OneDrive - Deutsche Telekom AG\Dokumente\Developement\C#\sap-hana-user-export\obj\Debug\net8.0-windows\sap-hana-user-export.genruntimeconfig.cache
 C:\Users\A200142857\OneDrive - Deutsche Telekom AG\Dokumente\Developement\C#\sap-hana-user-export\obj\Debug\net8.0-windows\ref\sap-hana-user-export.dll
 C:\Users\A200142857\OneDrive - Deutsche Telekom AG\Dokumente\Developement\C#\sap-hana-user-export\obj\Debug\net8.0-windows\sap_hana_user_export.mainWindow.resources
+C:\Users\A200142857\OneDrive - Deutsche Telekom AG\Dokumente\Developement\C#\sap-hana-user-export\obj\Debug\net8.0-windows\sap-hana-user-export.sourcelink.json

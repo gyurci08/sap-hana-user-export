@@ -1,5 +1,9 @@
 using sap_hana_user_export.data;
 using sap_hana_user_export.file;
+using sap_hana_user_export.entity;
+using System.Net;
+using System.Data;
+
 
 namespace sap_hana_user_export
 {
@@ -14,7 +18,7 @@ namespace sap_hana_user_export
             FROM 
                 GRANTED_ROLES 
             WHERE 
-                GRANTEE = '{0}'
+                GRANTEE LIKE '{user}'
 
             UNION
 
@@ -26,18 +30,53 @@ namespace sap_hana_user_export
             FROM 
                 GRANTED_PRIVILEGES 
             WHERE 
-                GRANTEE = '{0}'
+                GRANTEE LIKE '{user}'
             """;
+
+
 
         private String authorizationDataPath = "";
 
         private String generatedSqlPath = "";
 
-
-        private String sourceUser;
-        private String targetUser;
-
         private FileIO fileIO = new FileIO();
+
+        List<string[]> data;
+
+
+
+
+   
+        private static string createGrantSQL(DbAuthorization dbAuthorization, string username)
+        {
+            switch (dbAuthorization)
+            {
+                case { objectName: "PUBLIC", schemaName: "?", privilege: "?" }:
+                    return string.Empty;
+
+                case { objectName: "?", privilege: "CREATE ANY", isGrantable: true }:
+                    return string.Empty;
+
+                case { schemaName: "?", privilege: "?" }:
+                    return $"CALL GRANT_ACTIVATED_ROLE('{dbAuthorization.objectName}', '{username}');";
+
+                case { schemaName: "?", objectName: "?" }:
+                    return $"GRANT {dbAuthorization.privilege} TO {username}" +
+                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+
+                case { schemaName: not "?", objectName: not "?" }:
+                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName}.{dbAuthorization.objectName} TO {username}" +
+                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+
+                default:
+                    return $"UNKOWN CASE! Object_name: {dbAuthorization.objectName}     Schema_name: {dbAuthorization.schemaName}";
+            }
+        }
+
+
+
+
+
 
 
 
@@ -93,12 +132,9 @@ namespace sap_hana_user_export
                         DataParser dataParser = new DataParser();
 
                         string rawData = await fileIO.ReadFileAsync(filePath);
-                        List<string[]> data = dataParser.ParseContent(rawData);
-
-                        // Process the parsed data as needed
-                        // For example:
-                        // DisplayData(data);
+                        data = dataParser.ParseContent(rawData);
                     }
+
                 }
             }
             catch (Exception ex)
@@ -111,21 +147,40 @@ namespace sap_hana_user_export
 
         private async void bt_generateSql_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(tb_sourceUser.Text))
+            if (string.IsNullOrWhiteSpace(tb_sourceUser.Text) && string.IsNullOrWhiteSpace(tb_targetUser.Text))
             {
-                MessageBox.Show("Please enter a source user name.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please enter a source/target user name.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
-                string fileName = $"{tb_sourceUser.Text}_create.txt";
+                string targetUser = tb_targetUser.Text.ToUpper();
+                string fileName = $"{targetUser}_create.txt";
                 string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string appDataFolder = Path.Combine(documentsFolder, "sap-hana-user-export");
                 string createSqlFolder = Path.Combine(appDataFolder, "createSQL");
 
+                string content = string.Empty;
 
-                string content = "asd"; 
+                List<DbAuthorization> authorizations = new List<DbAuthorization>();
+
+                List<string> generatedSQL = new List<string>();
+
+                // Creating authorization entities
+                foreach (string[] row in data)
+                {
+                    authorizations.Add(new DbAuthorization(row[0], row[1], row[2], bool.Parse(row[3])));
+                }
+
+                foreach (DbAuthorization dbAuthorization in authorizations)
+                {
+                    string line = createGrantSQL(dbAuthorization, targetUser);
+                    if (!string.IsNullOrEmpty(line))
+                    {
+                        content += line + "\n";
+                    }
+                }
 
                 // Ensure the directories exist
                 Directory.CreateDirectory(createSqlFolder);
