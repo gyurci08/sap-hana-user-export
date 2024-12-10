@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(mainWindow));
             bt_generateSql = new Button();
             bt_copyQuery = new Button();
             bt_loadData = new Button();
@@ -35,6 +36,8 @@
             tb_targetUser = new TextBox();
             la_sourceUser = new Label();
             la_targetUser = new Label();
+            la_author = new Label();
+            la_version = new Label();
             SuspendLayout();
             // 
             // bt_generateSql
@@ -99,11 +102,31 @@
             la_targetUser.TabIndex = 6;
             la_targetUser.Text = "Target user";
             // 
+            // la_author
+            // 
+            la_author.AutoSize = true;
+            la_author.Location = new Point(74, 148);
+            la_author.Name = "la_author";
+            la_author.Size = new Size(108, 15);
+            la_author.TabIndex = 7;
+            la_author.Text = "By: Jandzsó György";
+            // 
+            // la_version
+            // 
+            la_version.AutoSize = true;
+            la_version.Location = new Point(212, 148);
+            la_version.Name = "la_version";
+            la_version.Size = new Size(37, 15);
+            la_version.TabIndex = 8;
+            la_version.Text = "v2.0.0";
+            // 
             // mainWindow
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(261, 154);
+            ClientSize = new Size(261, 172);
+            Controls.Add(la_version);
+            Controls.Add(la_author);
             Controls.Add(la_targetUser);
             Controls.Add(la_sourceUser);
             Controls.Add(tb_targetUser);
@@ -111,6 +134,9 @@
             Controls.Add(bt_loadData);
             Controls.Add(bt_copyQuery);
             Controls.Add(bt_generateSql);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            MaximizeBox = false;
             Name = "mainWindow";
             Text = "SAP HANA User Export";
             Load += Form1_Load;
@@ -127,5 +153,7 @@
         private TextBox tb_targetUser;
         private Label la_sourceUser;
         private Label la_targetUser;
+        private Label la_author;
+        private Label la_version;
     }
 }

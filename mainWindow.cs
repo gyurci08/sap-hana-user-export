@@ -3,13 +3,14 @@ using sap_hana_user_export.file;
 using sap_hana_user_export.entity;
 using System.Net;
 using System.Data;
+using sap_hana_user_export.utils;
 
 
 namespace sap_hana_user_export
 {
     public partial class mainWindow : Form
     {
-        private String authorizationDataQuery =
+        private string authorizationDataQuery =
             """
             SELECT 
                 ROLE_NAME AS OBJECT_NAME,
@@ -34,37 +35,53 @@ namespace sap_hana_user_export
                 GRANTEE LIKE '{0}'
             """;
 
+        private string createUserQuery = """
+            CREATE USER "{0}" PASSWORD "{1}";
+            ALTER USER "{0}" FORCE PASSWORD CHANGE;
+            """;
+
 
         private FileIO fileIO = new FileIO();
         List<string[]> data;
 
 
-       
+        private string version="v2.0.1"; 
+
+
+       private string createCreateUserSQL(string username)
+        {
+            PasswordGenerator passwordGenerator = new PasswordGenerator();
+            return string.Format(createUserQuery, username, passwordGenerator.Generate(15,2));
+        }
 
    
-        private static string createGrantSQL(DbAuthorization dbAuthorization, string username)
+        private string createGrantSQL(DbAuthorization dbAuthorization, string sourceUser, string targetUser)
         {
             switch (dbAuthorization)
             {
                 case { objectName: "PUBLIC", schemaName: "?", privilege: "?" }:
                     return string.Empty;
 
-                case { objectName: "?", privilege: "CREATE ANY", isGrantable: true }:
+                case { objectName: "?", schemaName: var schema, privilege: "CREATE ANY", isGrantable: true } when schema == sourceUser:
                     return string.Empty;
 
                 case { schemaName: "?", privilege: "?" }:
-                    return $"CALL GRANT_ACTIVATED_ROLE('{dbAuthorization.objectName}', '{username}');";
+                    return $"CALL GRANT_ACTIVATED_ROLE('{dbAuthorization.objectName}', '{targetUser}');";
 
-                case { schemaName: "?", objectName: "?" }:
-                    return $"GRANT {dbAuthorization.privilege} TO {username}" +
+                case { objectName: "?", schemaName: "?" }:
+                    return $"GRANT {dbAuthorization.privilege} TO {targetUser}" +
                            (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
 
-                case { schemaName: not "?", objectName: not "?" }:
-                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName}.{dbAuthorization.objectName} TO {username}" +
+                case { objectName: "?", schemaName: not "?" }:
+                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName} TO {targetUser}" +
+                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+
+                case { objectName: not "?", schemaName: not "?" }:
+                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName}.{dbAuthorization.objectName} TO {targetUser}" +
                            (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
 
                 default:
-                    return $"UNKOWN CASE! Object_name: {dbAuthorization.objectName}     Schema_name: {dbAuthorization.schemaName}";
+                    return $"-- UNKOWN CASE! Object_name: {dbAuthorization.objectName}     Schema_name: {dbAuthorization.schemaName}     Privilege: {dbAuthorization.privilege}";
             }
         }
 
@@ -121,8 +138,6 @@ namespace sap_hana_user_export
             }
         }
 
-
-
         private async void bt_generateSql_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(tb_sourceUser.Text))
@@ -131,54 +146,46 @@ namespace sap_hana_user_export
                 return;
             }
 
+            if (data == null || !data.Any())
+            {
+                MessageBox.Show("No data available to generate SQL. Please load data first.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
-                string targetUser = string.Empty;
-                if (!string.IsNullOrWhiteSpace(tb_targetUser.Text))
-                {
-                    targetUser = tb_targetUser.Text.ToUpper();
-                }
-                else
-                {   targetUser = tb_sourceUser.Text.ToUpper(); }
+                string sourceUser = tb_sourceUser.Text.ToUpper();
+                string targetUser = string.IsNullOrWhiteSpace(tb_targetUser.Text)
+                    ? sourceUser
+                    : tb_targetUser.Text.ToUpper();
 
                 string fileName = $"{targetUser}_create.txt";
                 string documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 string appDataFolder = Path.Combine(documentsFolder, "sap-hana-user-export");
                 string createSqlFolder = Path.Combine(appDataFolder, "createSQL");
 
-                string content = string.Empty;
+                string content = createCreateUserSQL(targetUser) + "\n";
 
-                List<DbAuthorization> authorizations = new List<DbAuthorization>();
-
-                List<string> generatedSQL = new List<string>();
-
-                // Creating authorization entities
-                foreach (string[] row in data)
-                {
-                    authorizations.Add(new DbAuthorization(row[0], row[1], row[2], bool.Parse(row[3])));
-                }
+                List<DbAuthorization> authorizations = data.Select(row => new DbAuthorization(row[0], row[1], row[2], bool.Parse(row[3]))).ToList();
 
                 foreach (DbAuthorization dbAuthorization in authorizations)
                 {
-                    string line = createGrantSQL(dbAuthorization, targetUser);
+                    string line = createGrantSQL(dbAuthorization, sourceUser, targetUser);
                     if (!string.IsNullOrEmpty(line))
                     {
                         content += line + "\n";
                     }
                 }
 
-                // Ensure the directories exist
                 Directory.CreateDirectory(createSqlFolder);
 
                 string generatedSqlPath = Path.Combine(createSqlFolder, fileName);
 
-                // Save the file
                 await fileIO.WriteFileAsync(generatedSqlPath, content);
 
-                // Copy content to clipboard
                 Clipboard.SetText(content);
 
-                MessageBox.Show($"File saved successfully at:\n{generatedSqlPath}\n"+"\nContent copied to clipboard",
+                MessageBox.Show($"File saved successfully at:\n{generatedSqlPath}\n\nContent copied to clipboard",
                                 "File Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
@@ -192,10 +199,10 @@ namespace sap_hana_user_export
 
 
 
-
         public mainWindow()
         {
             InitializeComponent();
+            la_version.Text = version;
         }
 
         private void Form1_Load(object sender, EventArgs e)
