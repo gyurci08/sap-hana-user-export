@@ -112,7 +112,7 @@
             Controls.Add(bt_copyQuery);
             Controls.Add(bt_generateSql);
             Name = "mainWindow";
-            Text = "Form1";
+            Text = "SAP HANA User Export";
             Load += Form1_Load;
             ResumeLayout(false);
             PerformLayout();
