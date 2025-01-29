@@ -7,7 +7,7 @@ namespace sap_hana_user_export.file
     internal class FileIO
     {
         // Method to read the contents of a file asynchronously
-        public async Task<string> ReadFileAsync(string filePath)
+        public async Task<string> readFileAsync(string filePath)
         {
             if (string.IsNullOrEmpty(filePath))
             {
@@ -29,7 +29,7 @@ namespace sap_hana_user_export.file
         }
 
         // Method to write contents to a file asynchronously
-        public async Task WriteFileAsync(string filePath, string content)
+        public async Task writeFileAsync(string filePath, string content)
         {
             if (string.IsNullOrEmpty(filePath))
             {

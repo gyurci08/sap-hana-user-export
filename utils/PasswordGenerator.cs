@@ -6,7 +6,7 @@ namespace sap_hana_user_export.utils
 {
     public class PasswordGenerator
     {
-        internal string Generate(int CharLength, int SpecNum)
+        internal string generate(int CharLength, int SpecNum)
         {
             Random rnd = new Random();
             string nChars = string.Empty;

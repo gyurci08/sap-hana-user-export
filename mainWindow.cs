@@ -45,13 +45,13 @@ namespace sap_hana_user_export
         List<string[]> data;
 
 
-        private string version="v2.0.1"; 
+        private string version="v2.0.3"; 
 
 
        private string createCreateUserSQL(string username)
         {
             PasswordGenerator passwordGenerator = new PasswordGenerator();
-            return string.Format(createUserQuery, username, passwordGenerator.Generate(15,2));
+            return string.Format(createUserQuery, username, passwordGenerator.generate(15,2));
         }
 
    
@@ -66,22 +66,40 @@ namespace sap_hana_user_export
                     return string.Empty;
 
                 case { schemaName: "?", privilege: "?" }:
-                    return $"CALL GRANT_ACTIVATED_ROLE('{dbAuthorization.objectName}', '{targetUser}');";
+                    if (dbAuthorization.objectName.Contains("::"))
+                    {
+                        return $"call grant_activated_role('{dbAuthorization.objectName}','{targetUser}');";
+                    }
+                    else
+                    {
+                        return $"GRANT \"{dbAuthorization.objectName}\" TO \"{targetUser}\"" +
+                               (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+                    }
 
                 case { objectName: "?", schemaName: "?" }:
-                    return $"GRANT {dbAuthorization.privilege} TO {targetUser}" +
-                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+                    if (dbAuthorization.privilege.Contains("::"))
+                    {
+                        return $"call grant_activated_role('{dbAuthorization.privilege}','{targetUser}');";
+                    }
+                    else
+                    {
+                        return $"GRANT \"{dbAuthorization.privilege}\" TO \"{targetUser}\"" +
+                              (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+                    }
 
                 case { objectName: "?", schemaName: not "?" }:
-                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName} TO {targetUser}" +
+                    return $"GRANT \"{dbAuthorization.privilege}\" ON \"{dbAuthorization.schemaName}\" TO \"{targetUser}\"" +
                            (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
 
                 case { objectName: not "?", schemaName: not "?" }:
-                    return $"GRANT {dbAuthorization.privilege} ON {dbAuthorization.schemaName}.{dbAuthorization.objectName} TO {targetUser}" +
+                    return $"GRANT \"{dbAuthorization.privilege}\" ON \"{dbAuthorization.schemaName}\".\"{dbAuthorization.objectName}\" TO \"{targetUser}\"" +
                            (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
 
+                // case { objectName: not "?", schemaName: "?" }:
+                // TODO: Look up and test this
+
                 default:
-                    return $"-- UNKOWN CASE! Object_name: {dbAuthorization.objectName}     Schema_name: {dbAuthorization.schemaName}     Privilege: {dbAuthorization.privilege}";
+                    return $"-- UNKOWN CASE! Object_name: \"{dbAuthorization.objectName}\"     Schema_name: \"{dbAuthorization.schemaName}\"     Privilege: \"{dbAuthorization.privilege}\"";
             }
         }
 
@@ -126,8 +144,8 @@ namespace sap_hana_user_export
                         string filePath = openFileDialog.FileName;
                         DataParser dataParser = new DataParser();
 
-                        string rawData = await fileIO.ReadFileAsync(filePath);
-                        data = dataParser.ParseContent(rawData);
+                        string rawData = await fileIO.readFileAsync(filePath);
+                        data = dataParser.parseContent(rawData);
                     }
 
                 }
@@ -181,7 +199,7 @@ namespace sap_hana_user_export
 
                 string generatedSqlPath = Path.Combine(createSqlFolder, fileName);
 
-                await fileIO.WriteFileAsync(generatedSqlPath, content);
+                await fileIO.writeFileAsync(generatedSqlPath, content);
 
                 Clipboard.SetText(content);
 

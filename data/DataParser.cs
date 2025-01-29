@@ -2,19 +2,19 @@
 {
     internal class DataParser
     {
-        public List<string[]> ParseContent(string content)
+        public List<string[]> parseContent(string content)
         {
             List<string[]> data = new List<string[]>();
             string[] lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Az első sort kihagyjuk
+            // Header should be skipped
             for (int i = 1; i < lines.Length; i++)
             {
                 string[] fields = lines[i].Split(';')
                                           .Select(field => field.Trim())
                                           .ToArray();
 
-                // Az első oszlopot kihagyjuk és eltávolítjuk az üres mezőket
+                // First column should be skipped
                 if (fields.Length > 1)
                 {
                     string[] cleanedFields = fields.Skip(1)
