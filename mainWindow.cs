@@ -54,54 +54,79 @@ namespace sap_hana_user_export
             return string.Format(createUserQuery, username, passwordGenerator.generate(15,2));
         }
 
-   
-        private string createGrantSQL(DbAuthorization dbAuthorization, string sourceUser, string targetUser)
+
+        private string createSQL(DbAuthorization dbAuthorization, string sourceUser, string targetUser)
         {
             switch (dbAuthorization)
             {
+                // Case 1: Skip for "PUBLIC" object or "CREATE ANY" privilege on the source user's schema
                 case { objectName: "PUBLIC", schemaName: "?", privilege: "?" }:
-                    return string.Empty;
-
                 case { objectName: "?", schemaName: var schema, privilege: "CREATE ANY", isGrantable: true } when schema == sourceUser:
                     return string.Empty;
 
+                // Case 2: Handle privileges containing "::"
+                case { objectName: "?", schemaName: "?" } when dbAuthorization.privilege.Contains("::"):
+                    return GenerateActivatedRoleSQL(dbAuthorization.privilege, targetUser);
+
+                // Case 3: Handle object names containing "::"
+                case { schemaName: "?", privilege: "?" } when dbAuthorization.objectName.Contains("::"):
+                    return GenerateActivatedRoleSQL(dbAuthorization.objectName, targetUser);
+
+                // Case 4: Grant based on object name only
                 case { schemaName: "?", privilege: "?" }:
-                    if (dbAuthorization.objectName.Contains("::"))
-                    {
-                        return $"call grant_activated_role('{dbAuthorization.objectName}','{targetUser}');";
-                    }
-                    else
-                    {
-                        return $"GRANT \"{dbAuthorization.objectName}\" TO \"{targetUser}\"" +
-                               (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
-                    }
+                    return GenerateGrantSQL(dbAuthorization.objectName, targetUser, dbAuthorization.isGrantable);
 
+                // Case 5: Grant based on privilege only
                 case { objectName: "?", schemaName: "?" }:
-                    if (dbAuthorization.privilege.Contains("::"))
-                    {
-                        return $"call grant_activated_role('{dbAuthorization.privilege}','{targetUser}');";
-                    }
-                    else
-                    {
-                        return $"GRANT \"{dbAuthorization.privilege}\" TO \"{targetUser}\"" +
-                              (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
-                    }
+                    return GenerateGrantSQL(dbAuthorization.privilege, targetUser, dbAuthorization.isGrantable);
 
+                // Case 6: Grant based on object name and privilege
+                case { objectName: not "?", schemaName: "?" }:
+                    return GenerateGrantOnObjectSQL(dbAuthorization.privilege, dbAuthorization.objectName, targetUser, dbAuthorization.isGrantable);
+
+                // Case 7: Grant based on schema name and privilege
                 case { objectName: "?", schemaName: not "?" }:
-                    return $"GRANT \"{dbAuthorization.privilege}\" ON \"{dbAuthorization.schemaName}\" TO \"{targetUser}\"" +
-                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+                    return GenerateGrantOnSchemaSQL(dbAuthorization.privilege, dbAuthorization.schemaName, targetUser, dbAuthorization.isGrantable);
 
+                // Case 8: Grant based on both schema name and object name
                 case { objectName: not "?", schemaName: not "?" }:
-                    return $"GRANT \"{dbAuthorization.privilege}\" ON \"{dbAuthorization.schemaName}\".\"{dbAuthorization.objectName}\" TO \"{targetUser}\"" +
-                           (dbAuthorization.isGrantable ? " WITH GRANT OPTION" : "") + ";";
+                    return GenerateGrantOnSchemaAndObjectSQL(dbAuthorization.privilege, dbAuthorization.schemaName, dbAuthorization.objectName, targetUser, dbAuthorization.isGrantable);
 
-                // case { objectName: not "?", schemaName: "?" }:
-                // TODO: Look up and test this
-
+                // Default case for unknown scenarios
                 default:
-                    return $"-- UNKOWN CASE! Object_name: \"{dbAuthorization.objectName}\"     Schema_name: \"{dbAuthorization.schemaName}\"     Privilege: \"{dbAuthorization.privilege}\"";
+                    return $"-- UNKNOWN CASE! Object_name: \"{dbAuthorization.objectName}\" Schema_name: \"{dbAuthorization.schemaName}\" Privilege: \"{dbAuthorization.privilege}\"";
             }
         }
+
+        private string GenerateActivatedRoleSQL(string roleOrPrivilege, string targetUser)
+        {
+            return $"call grant_activated_role('{roleOrPrivilege}','{targetUser}');";
+        }
+
+        private string GenerateGrantSQL(string grantTarget, string targetUser, bool isGrantable)
+        {
+            return $"GRANT \"{grantTarget}\" TO \"{targetUser}\"" +
+                   (isGrantable ? " WITH GRANT OPTION" : "") + ";";
+        }
+
+        private string GenerateGrantOnObjectSQL(string privilege, string objectName, string targetUser, bool isGrantable)
+        {
+            return $"GRANT \"{privilege}\" ON \"{objectName}\" TO \"{targetUser}\"" +
+                   (isGrantable ? " WITH GRANT OPTION" : "") + ";";
+        }
+
+        private string GenerateGrantOnSchemaSQL(string privilege, string schemaName, string targetUser, bool isGrantable)
+        {
+            return $"GRANT \"{privilege}\" ON \"{schemaName}\" TO \"{targetUser}\"" +
+                   (isGrantable ? " WITH GRANT OPTION" : "") + ";";
+        }
+
+        private string GenerateGrantOnSchemaAndObjectSQL(string privilege, string schemaName, string objectName, string targetUser, bool isGrantable)
+        {
+            return $"GRANT \"{privilege}\" ON \"{schemaName}\".\"{objectName}\" TO \"{targetUser}\"" +
+                   (isGrantable ? " WITH GRANT OPTION" : "") + ";";
+        }
+
 
 
 
@@ -188,7 +213,7 @@ namespace sap_hana_user_export
 
                 foreach (DbAuthorization dbAuthorization in authorizations)
                 {
-                    string line = createGrantSQL(dbAuthorization, sourceUser, targetUser);
+                    string line = createSQL(dbAuthorization, sourceUser, targetUser);
                     if (!string.IsNullOrEmpty(line))
                     {
                         content += line + "\n";
